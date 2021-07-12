@@ -4,6 +4,7 @@ import torch
 import torch.backends.cudnn as cudnn
 import numpy as np
 import PIL.Image as pil_image
+from matplotlib import pyplot as plt
 
 from models import FSRCNN
 from utils import convert_ycbcr_to_rgb, preprocess, calc_psnr
@@ -56,3 +57,24 @@ if __name__ == '__main__':
     output = np.clip(convert_ycbcr_to_rgb(output), 0.0, 255.0).astype(np.uint8)
     output = pil_image.fromarray(output)
     output.save(args.image_file.replace('.', '_fsrcnn_x{}.'.format(args.scale)))
+
+    plt.figure(figsize=(10, 10))
+    first_layer = model.first_part
+    last_layer = model.last_part
+    feature_map1 = first_layer.__getitem__(0).weight.cpu().clone()
+    feature_map2 = last_layer.__getitem__(0).weight.cpu().clone()
+    print("number of the first layer: ", len(feature_map1))
+    print("number of the last layer: ", len(feature_map2))
+    for i in range(0, len(feature_map1)):
+        map1 = feature_map1[i]
+        plt.subplot(8, 7, i + 1)
+        plt.axis('off')
+        plt.imshow(map1[0, :, :].detach(), cmap='gray')
+    plt.savefig('./data/visualization-nores/fist_layer.png')
+    plt.figure(figsize=(10, 10))
+    for i in range(0, len(feature_map2)):
+        map2 = feature_map2[i]
+        plt.subplot(8, 7, i + 1)
+        plt.axis('off')
+        plt.imshow(map2[0, :, :].detach(), cmap='gray')
+    plt.savefig('./data/visualization-nores/last_layer.png')

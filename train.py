@@ -8,11 +8,12 @@ import torch.optim as optim
 import torch.backends.cudnn as cudnn
 from torch.utils.data.dataloader import DataLoader
 from tqdm import tqdm
-
+import matplotlib.pyplot as plt
 from models import FSRCNN
 from datasets import TrainDataset, EvalDataset
 from utils import AverageMeter, calc_psnr
 
+from torch.utils.tensorboard import SummaryWriter
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -40,11 +41,12 @@ if __name__ == '__main__':
 
     model = FSRCNN(scale_factor=args.scale).to(device)
     criterion = nn.MSELoss()
-    optimizer = optim.Adam([
+    optimizer = optim.SGD([
         {'params': model.first_part.parameters()},
         {'params': model.mid_part.parameters()},
-        {'params': model.last_part.parameters(), 'lr': args.lr * 0.1}
-    ], lr=args.lr)
+        {'params': model.last_part.parameters(),
+         'params': model.decov.parameters(),
+         'lr': args.lr * 0.1}], lr=args.lr, momentum=0.9)
 
     train_dataset = TrainDataset(args.train_file)
     train_dataloader = DataLoader(dataset=train_dataset,
@@ -53,12 +55,13 @@ if __name__ == '__main__':
                                   num_workers=args.num_workers,
                                   pin_memory=True)
     eval_dataset = EvalDataset(args.eval_file)
-    eval_dataloader = DataLoader(dataset=eval_dataset, batch_size=1)
+    eval_dataloader = DataLoader(dataset=eval_dataset, batch_size=2)
 
     best_weights = copy.deepcopy(model.state_dict())
     best_epoch = 0
     best_psnr = 0.0
 
+    writer = SummaryWriter('./data/visualization-nores')
     for epoch in range(args.num_epochs):
         model.train()
         epoch_losses = AverageMeter()
@@ -98,8 +101,9 @@ if __name__ == '__main__':
 
             with torch.no_grad():
                 preds = model(inputs).clamp(0.0, 1.0)
-
-            epoch_psnr.update(calc_psnr(preds, labels), len(inputs))
+            psnr = calc_psnr(preds, labels)
+            writer.add_scalar('psnr', psnr, global_step=epoch, walltime=None)
+            epoch_psnr.update(psnr, len(inputs))
 
         print('eval psnr: {:.2f}'.format(epoch_psnr.avg))
 
