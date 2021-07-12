@@ -33,14 +33,14 @@ The 91-image, Set5 dataset converted to HDF5 can be downloaded from the links be
 Otherwise, you can use `prepare.py` to create custom dataset.
 
 ```bash
-python train.py --train-file "BLAH_BLAH/91-image_x3.h5" \
-                --eval-file "BLAH_BLAH/Set5_x3.h5" \
-                --outputs-dir "BLAH_BLAH/outputs" \
+python train.py --train-file "/home/zyli/projects/datasets/91-11_19.h5" \
+                --eval-file "/home/zyli/projects/datasets/Set-11_19.h5" \
+                --outputs-dir "BLAH_BLAH/outputs-nores" \
                 --scale 3 \
                 --lr 1e-3 \
-                --batch-size 16 \
-                --num-epochs 20 \
-                --num-workers 8 \
+                --batch-size 128 \
+                --num-epochs 500 \
+                --num-workers 0 \
                 --seed 123                
 ```
 
